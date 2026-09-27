@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api'
+  // Was: http://localhost:5000/api — now pointing at the deployed ECS/ALB backend.
+  // Swap this back to localhost when you want to test against your local server again.
+  baseURL: 'http://skillmatch-alb-741847994.ap-south-1.elb.amazonaws.com/api'
 });
 
 // Attach JWT token to every request automatically

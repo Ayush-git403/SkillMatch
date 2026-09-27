@@ -4,7 +4,24 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+// Allow both local dev and the deployed frontend to call this API.
+// Add more origins here later if you add a custom domain or CloudFront URL.
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://skillmatch-frontend-ayushman.s3-website.ap-south-1.amazonaws.com',
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // requests with no origin (like curl, Postman, or server-to-server) are allowed
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 // Routes
