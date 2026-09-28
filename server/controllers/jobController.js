@@ -1,4 +1,8 @@
+const { Op } = require('sequelize');
 const { JobListing, User } = require('../models');
+
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 50; // cap so a client can't request ?limit=100000 and defeat pagination
 
 // CREATE JOB (Employer only)
 const createJob = async (req, res) => {
@@ -18,20 +22,48 @@ const createJob = async (req, res) => {
   }
 };
 
-// GET ALL JOBS (Public)
+// GET ALL JOBS (Public) — paginated
+// Query params: ?page=1&limit=10&q=search-text
 const getAllJobs = async (req, res) => {
   try {
-    const jobs = await JobListing.findAll({
-      where: { status: 'open' },
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit, 10) || DEFAULT_LIMIT, 1),
+      MAX_LIMIT
+    );
+    const q = (req.query.q || '').trim();
+
+    const where = { status: 'open' };
+    if (q) {
+      where[Op.or] = [
+        { title: { [Op.iLike]: `%${q}%` } },
+        { description: { [Op.iLike]: `%${q}%` } }
+      ];
+    }
+
+    const { count, rows } = await JobListing.findAndCountAll({
+      where,
       include: [{
         model: User,
         as: 'employer',
         attributes: ['id', 'name', 'email']
       }],
-      order: [['createdAt', 'DESC']]
+      // id is a tie-breaker: without it, jobs sharing the same createdAt can
+      // shuffle between pages and show up twice or get skipped.
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
+      limit,
+      offset: (page - 1) * limit
     });
 
-    res.json(jobs);
+    res.json({
+      jobs: rows,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -56,7 +88,7 @@ const getJobById = async (req, res) => {
   }
 };
 
-// GET EMPLOYER'S OWN JOBS
+// GET EMPLOYER'S OWN JOBS (left unpaginated — an employer's own list stays small)
 const getMyJobs = async (req, res) => {
   try {
     const jobs = await JobListing.findAll({
