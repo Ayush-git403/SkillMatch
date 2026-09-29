@@ -9,7 +9,12 @@ import { useAuth } from "../context/AuthContext";
 const IconSearch = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-    <path d="M20 20L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path
+      d="M20 20L16.65 16.65"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -17,7 +22,9 @@ const IconPin = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
     <path
       d="M12 22s7-7.58 7-12.5A7 7 0 0 0 5 9.5C5 14.42 12 22 12 22Z"
-      stroke="currentColor" strokeWidth="2" strokeLinejoin="round"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
     />
     <circle cx="12" cy="9.5" r="2.5" stroke="currentColor" strokeWidth="2" />
   </svg>
@@ -25,40 +32,98 @@ const IconPin = () => (
 
 const IconClose = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-    <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    <path
+      d="M6 6L18 18M18 6L6 18"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
 const IconEmpty = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-    <rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M3 7L7 3H17L21 7" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M9 11H15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <rect
+      x="3"
+      y="7"
+      width="18"
+      height="14"
+      rx="2"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <path
+      d="M3 7L7 3H17L21 7"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 11H15"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
 const IconUpload = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-    <path d="M12 16V4M12 4L7 9M12 4L17 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path
+      d="M12 16V4M12 4L7 9M12 4L17 9"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
 // Circular progress ring for the fit score — replaces the old flat
 // bordered-circle-with-a-number. Animates in on mount/update.
-const ScoreRing = ({ value, size = 40, stroke = 4, trackColor = "#dbeafe", fillColor = "#2563eb" }) => {
+const ScoreRing = ({
+  value,
+  size = 40,
+  stroke = 4,
+  trackColor = "#dbeafe",
+  fillColor = "#2563eb",
+}) => {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.max(0, Math.min(100, value ?? 0));
   const offset = circumference - (clamped / 100) * circumference;
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block" }}>
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={trackColor} strokeWidth={stroke} />
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      style={{ display: "block" }}
+    >
       <circle
-        cx={size / 2} cy={size / 2} r={radius} fill="none"
-        stroke={fillColor} strokeWidth={stroke} strokeLinecap="round"
-        strokeDasharray={circumference} strokeDashoffset={offset}
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={trackColor}
+        strokeWidth={stroke}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={fillColor}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
         style={{ transition: "stroke-dashoffset 0.7s cubic-bezier(.4,0,.2,1)" }}
       />
@@ -82,15 +147,29 @@ const ApplicantDashboard = () => {
   const [message, setMessage] = useState("");
   const [uploadingId, setUploadingId] = useState(null);
 
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+
   // =========================================================
   // FETCH JOBS
   // =========================================================
 
   const fetchJobs = async () => {
     try {
-      const response = await api.get("/jobs");
-      const data = Array.isArray(response.data) ? response.data : [];
+      const response = await api.get("/jobs", {
+        params: { page, limit: 10, q: search.trim() || undefined },
+      });
+
+      // Tolerates both shapes during rollout — old array response or new { jobs, pagination }
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data.jobs || [];
       setJobs(data);
+
+      if (!Array.isArray(response.data) && response.data.pagination) {
+        setPagination(response.data.pagination);
+      }
+
       if (data.length > 0 && !selectedJob) {
         setSelectedJob(data[0]);
       }
@@ -122,7 +201,7 @@ const ApplicantDashboard = () => {
     fetchJobs();
     fetchApplications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, search]);
 
   // =========================================================
   // GET SCORE OBJECT
@@ -131,13 +210,25 @@ const ApplicantDashboard = () => {
   const getScoreData = (application) => {
     if (!application) return null;
 
-    if (application.score && typeof application.score === "object" && !Array.isArray(application.score)) {
+    if (
+      application.score &&
+      typeof application.score === "object" &&
+      !Array.isArray(application.score)
+    ) {
       return application.score;
     }
-    if (application.fit_score && typeof application.fit_score === "object" && !Array.isArray(application.fit_score)) {
+    if (
+      application.fit_score &&
+      typeof application.fit_score === "object" &&
+      !Array.isArray(application.fit_score)
+    ) {
       return application.fit_score;
     }
-    if (application.fit_score !== undefined || application.matched_skills !== undefined || application.status !== undefined) {
+    if (
+      application.fit_score !== undefined ||
+      application.matched_skills !== undefined ||
+      application.status !== undefined
+    ) {
       return application;
     }
     return null;
@@ -155,7 +246,12 @@ const ApplicantDashboard = () => {
   const getScoreStatus = (application) => {
     const scoreData = getScoreData(application);
     if (!scoreData) return "pending";
-    return String(scoreData.status || application.score_status || application.status || "pending").toLowerCase();
+    return String(
+      scoreData.status ||
+        application.score_status ||
+        application.status ||
+        "pending",
+    ).toLowerCase();
   };
 
   const getMatchedSkills = (application) => {
@@ -173,7 +269,9 @@ const ApplicantDashboard = () => {
   useEffect(() => {
     const shouldPoll = myApplications.some((application) => {
       const status = getScoreStatus(application);
-      return application.resume_url && ["pending", "processing"].includes(status);
+      return (
+        application.resume_url && ["pending", "processing"].includes(status)
+      );
     });
 
     if (!shouldPoll) return;
@@ -190,8 +288,10 @@ const ApplicantDashboard = () => {
   // HELPERS
   // =========================================================
 
-  const hasApplied = (jobId) => myApplications.some((application) => application.job_id === jobId);
-  const getApplicationForJob = (jobId) => myApplications.find((application) => application.job_id === jobId);
+  const hasApplied = (jobId) =>
+    myApplications.some((application) => application.job_id === jobId);
+  const getApplicationForJob = (jobId) =>
+    myApplications.find((application) => application.job_id === jobId);
 
   const handleApply = async (jobId) => {
     try {
@@ -201,7 +301,9 @@ const ApplicantDashboard = () => {
       await fetchApplications();
     } catch (error) {
       console.error("Apply error:", error);
-      setMessage(error?.response?.data?.message || "Unable to submit application.");
+      setMessage(
+        error?.response?.data?.message || "Unable to submit application.",
+      );
     }
   };
 
@@ -216,7 +318,9 @@ const ApplicantDashboard = () => {
       setUploadingId(applicationId);
       setMessage("");
 
-      const uploadResponse = await api.post(`/applications/${applicationId}/resume-upload-url`);
+      const uploadResponse = await api.post(
+        `/applications/${applicationId}/resume-upload-url`,
+      );
       const { uploadUrl, s3Key } = uploadResponse.data;
 
       await fetch(uploadUrl, {
@@ -249,16 +353,19 @@ const ApplicantDashboard = () => {
         job.company?.toLowerCase().includes(query) ||
         job.description?.toLowerCase().includes(query);
       const matchesLocation =
-        locationFilter === "all" || job.location?.toLowerCase().includes(locationFilter.toLowerCase());
+        locationFilter === "all" ||
+        job.location?.toLowerCase().includes(locationFilter.toLowerCase());
       const matchesJobType =
-        jobTypeFilter === "all" || job.job_type?.toLowerCase().includes(jobTypeFilter.toLowerCase());
+        jobTypeFilter === "all" ||
+        job.job_type?.toLowerCase().includes(jobTypeFilter.toLowerCase());
       return matchesSearch && matchesLocation && matchesJobType;
     });
   }, [jobs, search, locationFilter, jobTypeFilter]);
 
   const renderSkill = (skill) => {
     if (typeof skill === "string") return skill;
-    if (skill && typeof skill === "object") return skill.name || skill.skill || skill.title || "";
+    if (skill && typeof skill === "object")
+      return skill.name || skill.skill || skill.title || "";
     return String(skill);
   };
 
@@ -269,7 +376,6 @@ const ApplicantDashboard = () => {
   return (
     <div className="skillmatch-page">
       {/* NAVBAR */}
-     
 
       {/* HERO */}
       {activeTab === "jobs" && (
@@ -282,12 +388,17 @@ const ApplicantDashboard = () => {
                 <br />
                 fits your skills.
               </h1>
-              <p>Discover opportunities and see how well your resume matches each role.</p>
+              <p>
+                Discover opportunities and see how well your resume matches each
+                role.
+              </p>
             </div>
 
             <div className="sm-search-box">
               <div className="sm-search-field">
-                <span className="search-icon"><IconSearch /></span>
+                <span className="search-icon">
+                  <IconSearch />
+                </span>
                 <input
                   type="text"
                   placeholder="Job title, skills or company"
@@ -297,7 +408,9 @@ const ApplicantDashboard = () => {
               </div>
               <div className="search-divider" />
               <div className="sm-search-field">
-                <span className="location-icon"><IconPin /></span>
+                <span className="location-icon">
+                  <IconPin />
+                </span>
                 <input
                   type="text"
                   placeholder="Location"
@@ -315,7 +428,9 @@ const ApplicantDashboard = () => {
       {message && (
         <div className="sm-message">
           <span>{message}</span>
-          <button onClick={() => setMessage("")}><IconClose /></button>
+          <button onClick={() => setMessage("")}>
+            <IconClose />
+          </button>
         </div>
       )}
 
@@ -348,7 +463,11 @@ const ApplicantDashboard = () => {
                 ].map(([value, text]) => (
                   <button
                     key={value}
-                    className={jobTypeFilter === value ? "filter-option selected" : "filter-option"}
+                    className={
+                      jobTypeFilter === value
+                        ? "filter-option selected"
+                        : "filter-option"
+                    }
                     onClick={() => setJobTypeFilter(value)}
                   >
                     <span className="filter-radio" />
@@ -367,7 +486,11 @@ const ApplicantDashboard = () => {
                 ].map(([value, text]) => (
                   <button
                     key={value}
-                    className={locationFilter === value ? "filter-option selected" : "filter-option"}
+                    className={
+                      locationFilter === value
+                        ? "filter-option selected"
+                        : "filter-option"
+                    }
                     onClick={() => setLocationFilter(value)}
                   >
                     <span className="filter-radio" />
@@ -383,7 +506,10 @@ const ApplicantDashboard = () => {
                   <br />
                   do the matching.
                 </h4>
-                <p>Upload your resume after applying to see your compatibility with the role.</p>
+                <p>
+                  Upload your resume after applying to see your compatibility
+                  with the role.
+                </p>
               </div>
             </aside>
 
@@ -391,7 +517,9 @@ const ApplicantDashboard = () => {
             <section className="sm-job-list">
               <div className="job-list-header">
                 <div>
-                  <span className="results-count">{filteredJobs.length} opportunities</span>
+                  <span className="results-count">
+                    {filteredJobs.length} opportunities
+                  </span>
                   <h2>Jobs for you</h2>
                 </div>
                 <select className="sort-select" defaultValue="relevance">
@@ -402,7 +530,9 @@ const ApplicantDashboard = () => {
 
               {filteredJobs.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon"><IconEmpty /></div>
+                  <div className="empty-icon">
+                    <IconEmpty />
+                  </div>
                   <h3>No jobs found</h3>
                   <p>Try changing your search or filters.</p>
                 </div>
@@ -415,19 +545,29 @@ const ApplicantDashboard = () => {
                   return (
                     <article
                       key={job.id}
-                      className={selectedJob?.id === job.id ? "job-card selected" : "job-card"}
+                      className={
+                        selectedJob?.id === job.id
+                          ? "job-card selected"
+                          : "job-card"
+                      }
                       onClick={() => setSelectedJob(job)}
                     >
                       <div className="job-card-top">
-                        <div className="company-logo">{job.company?.charAt(0).toUpperCase() || "C"}</div>
+                        <div className="company-logo">
+                          {job.company?.charAt(0).toUpperCase() || "C"}
+                        </div>
 
                         <div className="job-card-content">
                           <div className="job-card-title-row">
                             <div>
                               <h3>{job.title}</h3>
-                              <p className="company-name">{job.company || "Company"}</p>
+                              <p className="company-name">
+                                {job.company || "Company"}
+                              </p>
                             </div>
-                            {applied && <span className="applied-badge">Applied</span>}
+                            {applied && (
+                              <span className="applied-badge">Applied</span>
+                            )}
                           </div>
 
                           <div className="job-meta">
@@ -439,11 +579,16 @@ const ApplicantDashboard = () => {
                             <span>{job.job_type || "Full-time"}</span>
                           </div>
 
-                          {job.salary && <div className="job-salary">{job.salary}</div>}
+                          {job.salary && (
+                            <div className="job-salary">{job.salary}</div>
+                          )}
 
                           {job.skills && (
                             <div className="job-skills">
-                              {(Array.isArray(job.skills) ? job.skills : String(job.skills).split(","))
+                              {(Array.isArray(job.skills)
+                                ? job.skills
+                                : String(job.skills).split(",")
+                              )
                                 .slice(0, 4)
                                 .map((skill, index) => (
                                   <span key={index}>{renderSkill(skill)}</span>
@@ -466,20 +611,43 @@ const ApplicantDashboard = () => {
                   );
                 })
               )}
+              {pagination.totalPages > 1 && (
+                <div className="job-pagination">
+                  <button
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {page} of {pagination.totalPages}
+                  </span>
+                  <button
+                    disabled={page >= pagination.totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </section>
 
             {/* JOB DETAILS */}
             <aside className="sm-job-details">
               {!selectedJob ? (
                 <div className="details-empty">
-                  <div className="empty-icon"><IconEmpty /></div>
+                  <div className="empty-icon">
+                    <IconEmpty />
+                  </div>
                   <h3>Select a job</h3>
                   <p>Choose an opportunity to see its details.</p>
                 </div>
               ) : (
                 <div className="details-inner" key={selectedJob.id}>
                   <div className="details-company">
-                    <div className="details-logo">{selectedJob.company?.charAt(0).toUpperCase() || "C"}</div>
+                    <div className="details-logo">
+                      {selectedJob.company?.charAt(0).toUpperCase() || "C"}
+                    </div>
                     <div>
                       <span>{selectedJob.company || "Company"}</span>
                     </div>
@@ -488,11 +656,16 @@ const ApplicantDashboard = () => {
                   <h1>{selectedJob.title}</h1>
 
                   <div className="details-meta">
-                    <span className="job-meta-item"><IconPin />{selectedJob.location || "Location not specified"}</span>
+                    <span className="job-meta-item">
+                      <IconPin />
+                      {selectedJob.location || "Location not specified"}
+                    </span>
                     <span>{selectedJob.job_type || "Full-time"}</span>
                   </div>
 
-                  {selectedJob.salary && <div className="details-salary">{selectedJob.salary}</div>}
+                  {selectedJob.salary && (
+                    <div className="details-salary">{selectedJob.salary}</div>
+                  )}
 
                   <div className="details-actions">
                     {hasApplied(selectedJob.id) ? (
@@ -500,7 +673,10 @@ const ApplicantDashboard = () => {
                         Application submitted
                       </button>
                     ) : (
-                      <button className="apply-button" onClick={() => handleApply(selectedJob.id)}>
+                      <button
+                        className="apply-button"
+                        onClick={() => handleApply(selectedJob.id)}
+                      >
                         Apply for this job
                       </button>
                     )}
@@ -519,7 +695,10 @@ const ApplicantDashboard = () => {
                         <div className="ai-match-card">
                           <div className="ai-label">SkillMatch AI</div>
                           <h3>See how well you match</h3>
-                          <p>Apply for this role and upload your resume to get an AI-powered fit analysis.</p>
+                          <p>
+                            Apply for this role and upload your resume to get an
+                            AI-powered fit analysis.
+                          </p>
                         </div>
                       );
                     }
@@ -529,15 +708,27 @@ const ApplicantDashboard = () => {
                         <div className="ai-match-card">
                           <div className="ai-label">SkillMatch AI</div>
                           <h3>Upload your resume</h3>
-                          <p>Your application is ready. Upload a PDF resume to calculate your AI fit score.</p>
+                          <p>
+                            Your application is ready. Upload a PDF resume to
+                            calculate your AI fit score.
+                          </p>
                           <label className="resume-upload">
                             <input
                               type="file"
                               accept=".pdf"
-                              onChange={(e) => handleResumeUpload(application.id, e.target.files[0])}
+                              onChange={(e) =>
+                                handleResumeUpload(
+                                  application.id,
+                                  e.target.files[0],
+                                )
+                              }
                             />
                             <IconUpload />
-                            <span>{uploadingId === application.id ? "Uploading..." : "Upload PDF resume"}</span>
+                            <span>
+                              {uploadingId === application.id
+                                ? "Uploading..."
+                                : "Upload PDF resume"}
+                            </span>
                           </label>
                         </div>
                       );
@@ -548,8 +739,13 @@ const ApplicantDashboard = () => {
                         <div className="ai-match-card processing">
                           <div className="ai-label">SkillMatch AI</div>
                           <h3>Analysing your resume</h3>
-                          <p>We're comparing your experience and skills with this role.</p>
-                          <div className="loading-line"><span /></div>
+                          <p>
+                            We're comparing your experience and skills with this
+                            role.
+                          </p>
+                          <div className="loading-line">
+                            <span />
+                          </div>
                           <small>This usually takes a few moments.</small>
                         </div>
                       );
@@ -560,7 +756,10 @@ const ApplicantDashboard = () => {
                         <div className="ai-match-card error-card">
                           <div className="ai-label">SkillMatch AI</div>
                           <h3>Analysis unavailable</h3>
-                          <p>We couldn't calculate your fit score right now. Please try again later.</p>
+                          <p>
+                            We couldn't calculate your fit score right now.
+                            Please try again later.
+                          </p>
                         </div>
                       );
                     }
@@ -573,7 +772,11 @@ const ApplicantDashboard = () => {
                             <h3>Your fit for this role</h3>
                           </div>
                           <div className="large-score-ring-wrap">
-                            <ScoreRing value={score ?? 0} size={84} stroke={6} />
+                            <ScoreRing
+                              value={score ?? 0}
+                              size={84}
+                              stroke={6}
+                            />
                             <div className="large-score">
                               {score !== null ? score : "--"}
                               {score !== null && <span>%</span>}
@@ -583,7 +786,9 @@ const ApplicantDashboard = () => {
 
                         {matchedSkills.length > 0 && (
                           <div className="matched-skills">
-                            <span className="matched-title">Matching skills</span>
+                            <span className="matched-title">
+                              Matching skills
+                            </span>
                             <div className="skill-list">
                               {matchedSkills.map((skill, index) => {
                                 const skillText = renderSkill(skill);
@@ -600,7 +805,8 @@ const ApplicantDashboard = () => {
                   <section className="job-description">
                     <h2>About this role</h2>
                     <div className="description-text">
-                      {selectedJob.description || "No job description has been provided for this position."}
+                      {selectedJob.description ||
+                        "No job description has been provided for this position."}
                     </div>
                   </section>
                 </div>
@@ -626,10 +832,17 @@ const ApplicantDashboard = () => {
 
             {myApplications.length === 0 ? (
               <div className="applications-empty">
-                <div className="empty-icon"><IconEmpty /></div>
+                <div className="empty-icon">
+                  <IconEmpty />
+                </div>
                 <h3>No applications yet</h3>
-                <p>Start exploring jobs and apply to roles that match your skills.</p>
-                <button onClick={() => setActiveTab("jobs")}>Explore jobs</button>
+                <p>
+                  Start exploring jobs and apply to roles that match your
+                  skills.
+                </p>
+                <button onClick={() => setActiveTab("jobs")}>
+                  Explore jobs
+                </button>
               </div>
             ) : (
               <div className="applications-grid">
@@ -643,32 +856,59 @@ const ApplicantDashboard = () => {
                       <div className="application-card-header">
                         <div>
                           <span className="application-company">
-                            {application.company || application.job?.company || "Company"}
+                            {application.company ||
+                              application.job?.company ||
+                              "Company"}
                           </span>
-                          <h3>{application.title || application.job?.title || "Job application"}</h3>
+                          <h3>
+                            {application.title ||
+                              application.job?.title ||
+                              "Job application"}
+                          </h3>
                         </div>
-                        <span className={status === "completed" ? "status completed" : "status"}>{status}</span>
+                        <span
+                          className={
+                            status === "completed"
+                              ? "status completed"
+                              : "status"
+                          }
+                        >
+                          {status}
+                        </span>
                       </div>
 
                       <div className="application-card-body">
                         <div className="application-info">
                           <span className="job-meta-item">
                             <IconPin />
-                            {application.location || application.job?.location || "Location not specified"}
+                            {application.location ||
+                              application.job?.location ||
+                              "Location not specified"}
                           </span>
                         </div>
 
                         {!application.resume_url ? (
                           <div className="application-upload">
-                            <p>Upload your resume to receive your AI fit score.</p>
+                            <p>
+                              Upload your resume to receive your AI fit score.
+                            </p>
                             <label className="resume-upload">
                               <input
                                 type="file"
                                 accept=".pdf"
-                                onChange={(e) => handleResumeUpload(application.id, e.target.files[0])}
+                                onChange={(e) =>
+                                  handleResumeUpload(
+                                    application.id,
+                                    e.target.files[0],
+                                  )
+                                }
                               />
                               <IconUpload />
-                              <span>{uploadingId === application.id ? "Uploading..." : "Upload resume"}</span>
+                              <span>
+                                {uploadingId === application.id
+                                  ? "Uploading..."
+                                  : "Upload resume"}
+                              </span>
                             </label>
                           </div>
                         ) : status === "pending" || status === "processing" ? (
@@ -679,16 +919,26 @@ const ApplicantDashboard = () => {
                         ) : (
                           <div className="application-score">
                             <div className="app-score-ring-wrap">
-                              <ScoreRing value={score ?? 0} size={48} stroke={4} />
-                              <span className="app-score-num">{score !== null ? score : "--"}</span>
+                              <ScoreRing
+                                value={score ?? 0}
+                                size={48}
+                                stroke={4}
+                              />
+                              <span className="app-score-num">
+                                {score !== null ? score : "--"}
+                              </span>
                             </div>
                             <div className="app-score-text">
                               <span className="score-label">AI fit score</span>
-                              <strong>{score !== null ? `${score}%` : "--"}</strong>
+                              <strong>
+                                {score !== null ? `${score}%` : "--"}
+                              </strong>
                             </div>
                             <button
                               onClick={() => {
-                                const job = jobs.find((j) => j.id === application.job_id);
+                                const job = jobs.find(
+                                  (j) => j.id === application.job_id,
+                                );
                                 if (job) {
                                   setSelectedJob(job);
                                   setActiveTab("jobs");
