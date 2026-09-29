@@ -7,11 +7,15 @@ const MAX_LIMIT = 50; // cap so a client can't request ?limit=100000 and defeat 
 // CREATE JOB (Employer only)
 const createJob = async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, description, location, job_type, salary, skills } = req.body;
 
     const job = await JobListing.create({
       title,
       description,
+      location: location || null,
+      job_type: job_type || null,
+      salary: salary || null,
+      skills: Array.isArray(skills) ? skills : null,
       employer_id: req.user.id,
       status: 'open'
     });
