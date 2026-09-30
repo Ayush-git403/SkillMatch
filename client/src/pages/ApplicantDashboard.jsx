@@ -403,7 +403,10 @@ const ApplicantDashboard = () => {
                   type="text"
                   placeholder="Job title, skills or company"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => { setSearch(e.target.value);
+                   setPage(1);
+                  }
+                }
                 />
               </div>
               <div className="search-divider" />
