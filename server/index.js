@@ -36,7 +36,7 @@ app.get('/', (req, res) => res.json({ message: 'Job Board API Running' }));
 
 const { sequelize } = require('./models');
 
-sequelize.sync({ alter: true })
+sequelize.sync()
   .then(() => console.log('Database synced'))
   .catch(err => console.error('DB sync error:', err));
 
