@@ -9,6 +9,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://skillmatch-frontend-ayushman.s3-website.ap-south-1.amazonaws.com',
+   'https://skill-match-ebon.vercel.app',
 ];
 
 app.use(cors({
