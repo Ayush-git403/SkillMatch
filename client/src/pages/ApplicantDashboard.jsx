@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
-import { useAuth } from "../context/AuthContext";
 
 // ============================================================
 // SMALL ICON COMPONENTS (replace text-glyph placeholders)
@@ -132,7 +131,6 @@ const ScoreRing = ({
 };
 
 const ApplicantDashboard = () => {
-  const { user, logout } = useAuth();
 
   const [jobs, setJobs] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
