@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "http://skillmatch-alb-741847994.ap-south-1.elb.amazonaws.com/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

@@ -140,6 +140,7 @@ const ApplicantDashboard = () => {
   const [activeTab, setActiveTab] = useState("jobs");
   const [selectedJob, setSelectedJob] = useState(null);
 
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [jobTypeFilter, setJobTypeFilter] = useState("all");
@@ -170,8 +171,15 @@ const ApplicantDashboard = () => {
         setPagination(response.data.pagination);
       }
 
-      if (data.length > 0 && !selectedJob) {
-        setSelectedJob(data[0]);
+      if (data.length > 0) {
+        setSelectedJob((current) => {
+          if (!current || !data.some((job) => job.id === current.id)) {
+            return data[0];
+          }
+          return current;
+        });
+      } else {
+        setSelectedJob(null);
       }
     } catch (error) {
       console.error("Failed to fetch jobs:", error);
@@ -344,23 +352,19 @@ const ApplicantDashboard = () => {
     }
   };
 
+  // Search is performed by the backend using semantic embeddings.
+  // Only location and job-type filters are applied locally.
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
-      const query = search.trim().toLowerCase();
-      const matchesSearch =
-        !query ||
-        job.title?.toLowerCase().includes(query) ||
-        job.company?.toLowerCase().includes(query) ||
-        job.description?.toLowerCase().includes(query);
       const matchesLocation =
         locationFilter === "all" ||
         job.location?.toLowerCase().includes(locationFilter.toLowerCase());
       const matchesJobType =
         jobTypeFilter === "all" ||
         job.job_type?.toLowerCase().includes(jobTypeFilter.toLowerCase());
-      return matchesSearch && matchesLocation && matchesJobType;
+      return matchesLocation && matchesJobType;
     });
-  }, [jobs, search, locationFilter, jobTypeFilter]);
+  }, [jobs, locationFilter, jobTypeFilter]);
 
   const renderSkill = (skill) => {
     if (typeof skill === "string") return skill;
@@ -402,11 +406,14 @@ const ApplicantDashboard = () => {
                 <input
                   type="text"
                   placeholder="Job title, skills or company"
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value);
-                   setPage(1);
-                  }
-                }
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setPage(1);
+                      setSearch(searchInput.trim());
+                    }
+                  }}
                 />
               </div>
               <div className="search-divider" />
@@ -421,7 +428,15 @@ const ApplicantDashboard = () => {
                   onChange={(e) => setLocationFilter(e.target.value || "all")}
                 />
               </div>
-              <button className="sm-search-button">Search jobs</button>
+              <button
+                className="sm-search-button"
+                onClick={() => {
+                  setPage(1);
+                  setSearch(searchInput.trim());
+                }}
+              >
+                Search jobs
+              </button>
             </div>
           </div>
         </section>
@@ -447,9 +462,11 @@ const ApplicantDashboard = () => {
                 <h3>Filter jobs</h3>
                 <button
                   onClick={() => {
+                    setSearchInput("");
                     setSearch("");
                     setLocationFilter("all");
                     setJobTypeFilter("all");
+                    setPage(1);
                   }}
                 >
                   Clear
@@ -521,7 +538,7 @@ const ApplicantDashboard = () => {
               <div className="job-list-header">
                 <div>
                   <span className="results-count">
-                    {filteredJobs.length} opportunities
+                    {pagination.total} opportunities
                   </span>
                   <h2>Jobs for you</h2>
                 </div>
