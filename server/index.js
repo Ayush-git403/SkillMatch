@@ -33,6 +33,14 @@ app.use('/api/jobs', jobRouter);
 const applicationRouter = require('./routes/applicationRouter');
 app.use('/api/applications', applicationRouter);
 
+// TEMPORARY diagnostic endpoint
+app.get('/api/debug/routes', (req, res) => {
+  res.json({
+    message: 'Current SkillMatch backend is running',
+    googleRouteExpected: '/api/auth/google',
+  });
+});
+
 app.get('/', (req, res) => res.json({ message: 'Job Board API Running' }));
 
 const { sequelize } = require('./models');
