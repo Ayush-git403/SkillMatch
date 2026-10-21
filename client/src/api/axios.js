@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://skillmatch-alb-741847994.ap-south-1.elb.amazonaws.com/api",
+  baseURL: "/api",
 });
 
 // Attach JWT token to every request automatically
