@@ -1,15 +1,22 @@
+/server/.env
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables and secrets
 .env
-*.env
+.env.*
+**/.env
+**/.env.*
 
-# Build
-dist/
+# Build output
 build/
-
-# Docker
-.dockerignore
+dist/
 
 # Logs
-*.log
+npm-debug.log*
 
-# Server environment
-server/.env
+/server/node_modules/
+/client/node_modules/
+/server/.env

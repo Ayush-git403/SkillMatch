@@ -1,10 +1,10 @@
-const { randomUUID } = require('crypto');
-const { PutObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const { SendMessageCommand } = require('@aws-sdk/client-sqs');
-const { Application, JobListing, User, Resume } = require('../models');
-const { s3Client, RESUME_BUCKET } = require('../config/s3');
-const { sqsClient, RESUME_SCORING_QUEUE_URL } = require('../config/sqs');
+const { randomUUID } = require("crypto");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { SendMessageCommand } = require("@aws-sdk/client-sqs");
+const { Application, JobListing, User, Resume } = require("../models");
+const { s3Client, RESUME_BUCKET } = require("../config/s3");
+const { sqsClient, RESUME_SCORING_QUEUE_URL } = require("../config/sqs");
 
 // APPLY TO JOB (Applicant only)
 const applyToJob = async (req, res) => {
@@ -13,25 +13,29 @@ const applyToJob = async (req, res) => {
 
     // Check job exists
     const job = await JobListing.findByPk(job_id);
-    if (!job) return res.status(404).json({ message: 'Job not found' });
-    if (job.status !== 'open') return res.status(400).json({ message: 'Job is no longer open' });
+    if (!job) return res.status(404).json({ message: "Job not found" });
+    if (job.status !== "open")
+      return res.status(400).json({ message: "Job is no longer open" });
 
     // Check already applied
     const existing = await Application.findOne({
-      where: { job_id, applicant_id: req.user.id }
+      where: { job_id, applicant_id: req.user.id },
     });
-    if (existing) return res.status(400).json({ message: 'Already applied to this job' });
+    if (existing)
+      return res.status(400).json({ message: "Already applied to this job" });
 
     // Create application
     const application = await Application.create({
       job_id,
       applicant_id: req.user.id,
-      status: 'pending'
+      status: "pending",
     });
 
-    res.status(201).json({ message: 'Application submitted successfully', application });
+    res
+      .status(201)
+      .json({ message: "Application submitted successfully", application });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -43,22 +47,32 @@ const getMyApplications = async (req, res) => {
       include: [
         {
           model: JobListing,
-          as: 'job',
-          include: [{
-            model: User,
-            as: 'employer',
-            attributes: ['id', 'name', 'email']
-          }]
+          as: "job",
+          include: [
+            {
+              model: User,
+              as: "employer",
+              attributes: ["id", "name", "email"],
+            },
+          ],
         },
-        { association: 'resume', attributes: ['id', 's3_key', 'original_file_name'] },
-        { association: 'score' }
+        {
+          association: "resume",
+          attributes: ["id", "s3_key", "original_file_name"],
+        },
+        { association: "score" },
       ],
-      order: [['createdAt', 'DESC']]
+      order: [["createdAt", "DESC"]],
     });
 
-    res.json(applications);
+    res.json(
+      applications.map((a) => ({
+        ...a.toJSON(),
+        resume_url: a.resume ? a.resume.original_file_name || "uploaded" : null,
+      })),
+    );
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -66,25 +80,27 @@ const getMyApplications = async (req, res) => {
 const getJobApplications = async (req, res) => {
   try {
     const job = await JobListing.findByPk(req.params.job_id);
-    if (!job) return res.status(404).json({ message: 'Job not found' });
+    if (!job) return res.status(404).json({ message: "Job not found" });
 
     if (job.employer_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     const applications = await Application.findAll({
       where: { job_id: req.params.job_id },
-      include: [{
-        model: User,
-        as: 'applicant',
-        attributes: ['id', 'name', 'email']
-      }],
-      order: [['createdAt', 'DESC']]
+      include: [
+        {
+          model: User,
+          as: "applicant",
+          attributes: ["id", "name", "email"],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
     });
 
     res.json(applications);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -92,26 +108,27 @@ const getJobApplications = async (req, res) => {
 const updateApplicationStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const validStatuses = ['pending', 'shortlisted', 'rejected'];
+    const validStatuses = ["pending", "shortlisted", "rejected"];
 
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
+      return res.status(400).json({ message: "Invalid status" });
     }
 
     const application = await Application.findByPk(req.params.id, {
-      include: [{ model: JobListing, as: 'job' }]
+      include: [{ model: JobListing, as: "job" }],
     });
 
-    if (!application) return res.status(404).json({ message: 'Application not found' });
+    if (!application)
+      return res.status(404).json({ message: "Application not found" });
 
     if (application.job.employer_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     await application.update({ status });
-    res.json({ message: 'Application status updated', application });
+    res.json({ message: "Application status updated", application });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -121,17 +138,22 @@ const getResumeUploadUrl = async (req, res) => {
   try {
     const { fileName, contentType } = req.body;
     if (!fileName || !contentType) {
-      return res.status(400).json({ message: 'fileName and contentType are required' });
+      return res
+        .status(400)
+        .json({ message: "fileName and contentType are required" });
     }
-    if (contentType !== 'application/pdf') {
-      return res.status(400).json({ message: 'Only PDF resumes are supported' });
+    if (contentType !== "application/pdf") {
+      return res
+        .status(400)
+        .json({ message: "Only PDF resumes are supported" });
     }
 
     const application = await Application.findByPk(req.params.id);
-    if (!application) return res.status(404).json({ message: 'Application not found' });
+    if (!application)
+      return res.status(404).json({ message: "Application not found" });
 
     if (application.applicant_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     const s3Key = `resumes/${application.id}-${randomUUID()}.pdf`;
@@ -147,7 +169,7 @@ const getResumeUploadUrl = async (req, res) => {
 
     res.json({ uploadUrl, s3Key });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -157,22 +179,26 @@ const getResumeUploadUrl = async (req, res) => {
 const confirmResumeUpload = async (req, res) => {
   try {
     const { s3Key, originalFileName } = req.body;
-    if (!s3Key) return res.status(400).json({ message: 's3Key is required' });
+    if (!s3Key) return res.status(400).json({ message: "s3Key is required" });
 
     const application = await Application.findByPk(req.params.id);
-    if (!application) return res.status(404).json({ message: 'Application not found' });
+    if (!application)
+      return res.status(404).json({ message: "Application not found" });
 
     if (application.applicant_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     // upsert — applicant might re-upload before scoring finishes
     const [resume] = await Resume.findOrCreate({
       where: { application_id: application.id },
-      defaults: { s3_key: s3Key, original_file_name: originalFileName || null }
+      defaults: { s3_key: s3Key, original_file_name: originalFileName || null },
     });
     if (resume.s3_key !== s3Key) {
-      await resume.update({ s3_key: s3Key, original_file_name: originalFileName || null });
+      await resume.update({
+        s3_key: s3Key,
+        original_file_name: originalFileName || null,
+      });
     }
 
     // Push to SQS instead of scoring in-process — a separate worker process
@@ -180,14 +206,16 @@ const confirmResumeUpload = async (req, res) => {
     // decouples upload confirmation from scoring: if the worker is busy,
     // slow, or briefly down, the message just waits in the queue instead of
     // the request failing or the API server taking on that load itself.
-    await sqsClient.send(new SendMessageCommand({
-      QueueUrl: RESUME_SCORING_QUEUE_URL,
-      MessageBody: JSON.stringify({ application_id: application.id }),
-    }));
+    await sqsClient.send(
+      new SendMessageCommand({
+        QueueUrl: RESUME_SCORING_QUEUE_URL,
+        MessageBody: JSON.stringify({ application_id: application.id }),
+      }),
+    );
 
-    res.status(201).json({ message: 'Resume recorded successfully', resume });
+    res.status(201).json({ message: "Resume recorded successfully", resume });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -197,5 +225,5 @@ module.exports = {
   getJobApplications,
   updateApplicationStatus,
   getResumeUploadUrl,
-  confirmResumeUpload
+  confirmResumeUpload,
 };

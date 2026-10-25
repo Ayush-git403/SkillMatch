@@ -3,7 +3,17 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+app.set('trust proxy', 1); // without this, every visitor shares one rate-limit bucket behind Render's proxy
 
+const { startScoreQueue } = require('./services/scoreQueue');
+
+sequelize.sync({ alter: true })
+  .then(() => {
+    console.log('Database synced');
+    startScoreQueue();
+  })
+  .catch(err => console.error('DB sync error:', err));
+  
 // Allow both local dev and the deployed frontend to call this API.
 // Add more origins here later if you add a custom domain or CloudFront URL.
 const allowedOrigins = [
