@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import EmployerDashboard from './pages/EmployerDashboard';
 import ApplicantDashboard from './pages/ApplicantDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import ChooseRole from './pages/ChooseRole';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<h1 style={{ padding: '20px' }}>Unauthorized Access</h1>} />
+          <Route path="/choose-role" element={<ChooseRole />} />
           <Route path="/employer" element={
             <ProtectedRoute allowedRoles={['employer']}>
               <EmployerDashboard />
